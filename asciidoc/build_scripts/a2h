@@ -1,0 +1,9 @@
+#!/bin/bash
+#
+# This script uses a2x to convert an asciidoc document to a chunked HTML set of files.
+#
+
+document=$1
+outputdirectory=${2:-"./"}
+
+a2x -fchunked -dbook --icons -D ${outputdirectory} ${document}

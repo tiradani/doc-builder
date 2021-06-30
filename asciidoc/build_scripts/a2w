@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+# This script uses a2x and pandoc to convert to a word document.  Unfortunately, there is no template for word, so
+# whatever is produced is what you get.  It kind of sucks... I would suggest using a2o instead.
+#
+
+# This is the asciidoc document
+document=$1
+# remove the extension
+documentname=${document%.*}
+
+# convert to docbook
+a2x -L -f docbook ${document}
+
+# use pandoc to convert to word
+pandoc -f docbook ${documentname}.xml -t docx -o ${documentname}.docx
+
+# clean up the extra xml file
+rm -f ${documentname}.xml

@@ -1,0 +1,96 @@
+#!/bin/bash
+##
+## This script uses aasciidoctor and pandoc to convert an asciidoc document to
+## an ODT document.
+##
+## There are no named parameters at this time, only positional arguments.
+##
+## Usage:
+##
+##  a20 <asciidocument> <base directory containing the templates directory>
+##
+## TODOs:
+##  - Add error checking to make sure pandoc and asciidoctor are in the path
+##  - Add error checking to make sure the templates directory is known by the
+##    script
+##  - Add a verbose mode and a "silent" mode
+##  - Add real argument handling
+##  - Add a "help" message
+
+set -x
+
+## This is the asciidoc document
+document=$1
+
+## This is the base directory from which we start with to resolve relative paths
+rootdirectory=${2:-"./"}
+
+## This is the asciidoc file without the extension
+myfile=${document%.*}
+
+## This is the templates directory
+templatedirectory=${rootdirectory}/templates
+
+## asciidoctor uses erb templates.  We need to modify the default template so
+## that the pubsnumber shows up in the docbook xml.
+docbook_template=${templatedirectory}/document.xml.erb
+
+## This is the ODT template that pandoc will use
+odt_template=${templatedirectory}/pandoc.openoffice.template.xml
+
+## Convert to DOCBOOK format
+asciidoctor -T ${templatedirectory} -b docbook ${document}
+
+## Copy the base ODT template to the actual template file that will be used
+cp ${templatedirectory}/pandoc.openoffice.template.base.xml ${templatedirectory}/pandoc.openoffice.template.xml
+
+## The template for ODT requires a hard-coded image path.  Insert this path into
+## the template
+headerimage=${3:-"http://www.fnal.gov/faw/designstandards/filesfordownload/FNAL-Logo-NAL-Blue.png"}
+sed -i "" "s,XXXheaderimageXXX,${headerimage}," ${odt_template}
+
+## Extract all the required info from the docbook document
+## pandoc does not set the appropriate variables needed in the template
+##
+## Note to self:  xmllint is a piece of ...
+## If the doc is converted to DocBook 5, namespaces are inserted and then the
+## following garbage paths are needed:
+##
+#pubsnumber=$(xmllint --xpath '/*[local-name() = "article"]/*[local-name() = "pubsnumber"]/text()' ${myfile}.xml)
+#version=$(xmllint --xpath '/*[local-name() = "article"]/*[local-name() = "info"]/*[local-name() = "revhistory"]/*[local-name() = "revision"]/*[local-name() = "revnumber"]/text()' ${myfile}.xml)
+#subtitle=$(xmllint --xpath '/*[local-name() = "article"]/*[local-name() = "info"]/*[local-name() = "subtitle"]/text()' test_math_with_pandoc.xml ${myfile}.xml)
+#date=$(xmllint --xpath '/*[local-name() = "article"]/*[local-name() = "info"]/*[local-name() = "date"]/text()' ${myfile}.xml)
+#firstname=$(xmllint --xpath '/*[local-name() = "article"]/*[local-name() = "info"]/*[local-name() = "author"]/*[local-name() = "personname"]/*[local-name() = "firstname"]/text()' ${myfile}.xml)
+#surname=$(xmllint --xpath '/*[local-name() = "article"]/*[local-name() = "info"]/*[local-name() = "author"]/*[local-name() = "personname"]/*[local-name() = "surname"]/text()' ${myfile}.xml)
+##
+## If the doc is converted to DocBook 4.5, then namespaces are omitted and the
+## following, normal, intuitive paths suffice:
+pubsnumber=$(xmllint --xpath '/article/articleinfo/pubsnumber/text()' ${myfile}.xml)
+version=$(xmllint --xpath '/article/articleinfo/revhistory/revision/revnumber/text()' ${myfile}.xml)
+subtitle=$(xmllint --xpath '/article/articleinfo/subtitle/text()' test_math_with_pandoc.xml ${myfile}.xml)
+date=$(xmllint --xpath '/article/articleinfo/date/text()' ${myfile}.xml)
+firstname=$(xmllint --xpath '/article/articleinfo/author/firstname/text()' ${myfile}.xml)
+surname=$(xmllint --xpath '/article/articleinfo/author/surname/text()' ${myfile}.xml)
+
+## Use pandoc to convert to odt - set appropriate variables for the template
+pandoc -f docbook ${myfile}.xml \
+       -w odt \
+       --template=${odt_template} \
+       -o ${myfile}.odt \
+       --variable=subtitle:"${subtitle}" \
+       --variable=version:"${version}" \
+       --variable=date:"${date}" \
+       --variable=pubsnumber:"${pubsnumber}" \
+       --variable=mainauthor:"${firstname} ${surname}" \
+       --mathjax
+
+## remove extra xml file
+rm -f ${myfile}.xml
+
+## remove extra working files if math images were created
+rm -f ${myfile}*.png
+rm -f ${myfile}*.md5
+rm -f stem-*.svg
+
+## remove the modified template
+rm -f ${template}

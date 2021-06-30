@@ -1,0 +1,63 @@
+#!/bin/bash
+##
+## This script uses a2x and pandoc to convert an asciidoc document to an ODT document.
+##
+
+## This is the asciidoc document
+document=$1
+
+## This is the base git directory from which we start with to resolve relative paths
+## note:  we assume that we are in the base unless overridden.  need to put error checking code here
+rootdirectory=${2:-"./"}
+
+## This is the asciidoc file without the extension
+myfile=${document%.*}
+
+## This is the templates directory
+templatedirectory=${rootdirectory}/templates
+
+## The template for ODT requires a hard-coded image path.  Since this is in a git repo, we will copy a base template
+## and insert the path
+headerimage=${3:-"http://www.fnal.gov/faw/designstandards/filesfordownload/FNAL-Logo-NAL-Blue.png"}
+echo "Header Image: ${headerimage}"
+
+cp ${templatedirectory}/pandoc.openoffice.template.base.xml ${templatedirectory}/pandoc.openoffice.template.xml
+template=${templatedirectory}/pandoc.openoffice.template.xml
+echo "Template: ${template}"
+
+sed -i "" "s,XXXheaderimageXXX,${headerimage}," ${template}
+
+## Convert asciidoc to docbook
+a2x -L -f docbook ${document}
+
+## Extract all the required info from the docbook document
+## pandoc does not set the appropriate variables needed in the template
+subtitle=$(xmllint --xpath 'article/articleinfo/subtitle/text()' ${myfile}.xml)
+version=$(xmllint --xpath 'article/articleinfo/edition/text()' ${myfile}.xml)
+date=$(xmllint --xpath 'article/articleinfo/date/text()' ${myfile}.xml)
+pubsnumber=$(xmllint --xpath 'article/articleinfo/pubsnumber/text()' ${myfile}.xml)
+firstname=$(xmllint --xpath 'article/articleinfo/author/firstname/text()' ${myfile}.xml)
+surname=$(xmllint --xpath 'article/articleinfo/author/surname/text()' ${myfile}.xml)
+author="${firstname} ${surname}"
+
+## Use pandoc to convert to odt - set appropriate variables for the template
+pandoc -f docbook ${myfile}.xml \
+       -w odt \
+       --template=${template} \
+       -o ${myfile}.odt \
+       --variable=subtitle:"${subtitle}" \
+       --variable=version:"${version}" \
+       --variable=date:"${date}" \
+       --variable=pubsnumber:"${pubsnumber}" \
+       --variable=mainauthor:"${author}" \
+       --mathjax
+
+## remove extra xml file
+rm -f ${myfile}.xml
+
+## remove extra working files if math images were created
+rm -f ${myfile}*.png
+rm -f ${myfile}*.md5
+
+## remove the modified template
+rm -f ${template}

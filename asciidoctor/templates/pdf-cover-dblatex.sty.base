@@ -1,0 +1,33 @@
+\usepackage{graphicx}
+\usepackage{float}
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{asciidoc-dblatex}[2012/10/24 AsciiDoc DocBook Style]
+
+%% Just use the original package and pass the options.
+\RequirePackageWithOptions{docbook}
+
+% custom cover page
+\def\DBKcover{
+  \thispagestyle{empty}
+  \begin{center}
+  \begin{figure}[h]
+  \includegraphics[width=0.3\textwidth]{XXXheaderimageXXX} \\
+  \end{figure}
+  \vspace*{3in}
+  \sffamily
+  {\bf \Huge \DBKtitle \\[1ex]\large ~~~ \\}
+  {\bf \Large \DBKsubtitle \\[1ex]\large ~~~ \\}
+  \vspace*{1.1in}
+  Version  \DBKedition \\
+  \DBKdate \\
+  \vspace*{0.1in}
+  \DBKreference \\
+  \vspace*{2.2in}
+  \begin{flushleft}
+  Prepared By: \\
+  \vspace*{.1in}
+  \DBKauthor
+  \end{flushleft}
+  \end{center}
+  \vfill
+}

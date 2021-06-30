@@ -1,0 +1,7 @@
+#!/bin/bash
+#
+# This script is a placeholder for the moment.  Still need to do a bit of
+# research to reproduce the pdf templates with asciidoctor.  In the mean-time,
+# this is what it takes to produce a pdf with latex math equations:
+
+asciidoctor-pdf -r asciidoctor-mathematical -a mathematical-format=svg test_math.asciidoc

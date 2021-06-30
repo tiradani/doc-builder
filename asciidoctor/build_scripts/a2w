@@ -1,0 +1,30 @@
+#!/bin/bash
+##
+# This script is a placeholder for the moment.  Still need to do a bit of
+# research to get the transformation done with asciidoc.  Currently this only
+# works with traditional markdown.
+
+## This is the asciidoc document
+document=$1
+
+## This is the base directory from which we start with to resolve relative paths
+rootdirectory=${2:-"./"}
+
+## This is the asciidoc file without the extension
+myfile=${document%.*}
+
+## This is the templates directory
+templatedirectory=${rootdirectory}/templates
+
+pandoc -t latex --mathjax ${myfile}.md | pandoc -f latex --reference-doc=${rootdirectory}/templates/custom-reference.dotx -o ${myfile}.docx
+
+## remove extra xml file
+rm -f ${myfile}.xml
+
+## remove extra working files if math images were created
+rm -f ${myfile}*.png
+rm -f ${myfile}*.md5
+rm -f stem-*.svg
+
+## remove the modified template
+rm -f ${template}

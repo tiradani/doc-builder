@@ -1,0 +1,44 @@
+#!/bin/bash
+#
+# This script uses a2x to convert an asciidoc document to a PDF.
+#
+# Need to modify /etc/asciidoc/docbook45.conf to add edition, so that the cover page can include Version
+#
+# Right before the revhistory stanza add:
+#   {revnumber?<edition>{revnumber}</edition>}
+
+# This is the asciidoc document
+document=$1
+
+# This is the base git directory from which we start with to resolve relative paths
+rootdirectory=${2:-"./"}
+
+# This is the templates directory
+templatedirectory=${rootdirectory}/Templates
+
+# The template for ODT requires a hard-coded image path.  Since this is in a git repo, we will copy a base template
+# and insert the path
+headerimage="images/FNAL-Logo-NAL-Blue.png"
+echo "Header Image: ${headerimage}"
+template=${templatedirectory}/pdf-cover-dblatex.sty
+echo "Template: ${template}"
+
+cp ${templatedirectory}/pdf-cover-dblatex.sty.base ${template}
+
+sed -i "s,XXXheaderimageXXX,${headerimage},g" ${template}
+
+# check if there is a revision history file... if there is, use it
+myfile=${document%.*}
+revhistoryfile=${myfile}-revhistory.xml
+if [ -f ${revhistoryfile} ]; then
+  revhistory="--attribute revisionhistory"
+else
+  revhistory=""
+fi
+echo "revhistory: ${revhistory}"
+
+# use a2x to convert to a pdf
+a2x --verbose -f pdf --dblatex-opts="-P doc.publisher.show=0 -s ${template}" ${revhistory} ${document}
+
+# remove the modified template
+rm -f ${template}
